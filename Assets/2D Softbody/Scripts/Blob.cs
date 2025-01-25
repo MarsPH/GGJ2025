@@ -58,6 +58,11 @@ public class Blob : MonoBehaviour
     private Vector3 previousScale;
     public float referencePointDistance = 0.5f;
     public bool hasAbsorbed = false;
+    
+    public float maxDeformationThreshold = 0.5f; // Max allowable deformation
+    public float minDeformationThreshold = 0.2f; // Min allowable deformation
+    public string sharpObstacleTag = "SharpObstacle"; // Tag for sharp obstacles
+    
     public int width = 5;
     public int height = 5;
     public int referencePointsCount = 12;
@@ -84,78 +89,7 @@ public class Blob : MonoBehaviour
         MapVerticesToReferencePoints();
 
     }
-    
-    void RecalculateSpringJoints()
-    {
-        // Iterate over all reference points
-        for (int i = 0; i < referencePointsCount; i++)
-        {
-            SpringJoint2D springJoint = referencePoints[i].GetComponent<SpringJoint2D>();
 
-            // Connect each point to the main bubble
-            springJoint.connectedBody = GetComponent<Rigidbody2D>();
-            springJoint.connectedAnchor = Vector3.zero;
-            springJoint.distance = 0;
-            springJoint.dampingRatio = springDampingRatio;
-            springJoint.frequency = springFrequency;
-
-            // Connect adjacent reference points to form a circular structure
-            if (i > 0)
-            {
-                SpringJoint2D adjacentJoint = referencePoints[i].AddComponent<SpringJoint2D>();
-                adjacentJoint.connectedBody = referencePoints[i - 1].GetComponent<Rigidbody2D>();
-                adjacentJoint.distance = 0;
-                adjacentJoint.dampingRatio = springDampingRatio;
-                adjacentJoint.frequency = springFrequency;
-            }
-        }
-
-        // Close the circular structure by connecting the last point to the first
-        SpringJoint2D finalJoint = referencePoints[0].AddComponent<SpringJoint2D>();
-        finalJoint.connectedBody = referencePoints[referencePointsCount - 1].GetComponent<Rigidbody2D>();
-        finalJoint.distance = 0;
-        finalJoint.dampingRatio = springDampingRatio;
-        finalJoint.frequency = springFrequency;
-    }
-
-
-    void UpdateReferencePointsAfterAbsorption(float newBubbleSize)
-    {
-        float angleStep = 360f / referencePointsCount; // Divide full circle
-        float radius = referencePointDistance * 0.8f * (newBubbleSize / transform.localScale.x); // Adjust radius closer to center
-
-        for (int i = 0; i < referencePointsCount; i++)
-        {
-            // Calculate new position in local space
-            float angle = i * angleStep * Mathf.Deg2Rad; // Convert to radians
-            Vector3 newPosition = new Vector3(
-                Mathf.Cos(angle) * radius,
-                Mathf.Sin(angle) * radius,
-                0
-            );
-
-            // Update reference point's position relative to the blob
-            referencePoints[i].transform.localPosition = newPosition;
-
-            // Reset local rotation to maintain proper alignment
-            referencePoints[i].transform.localRotation = Quaternion.identity; // Ensures consistent Z rotation
-
-            // Adjust collider radius dynamically
-            CircleCollider2D collider = referencePoints[i].GetComponent<CircleCollider2D>();
-            if (collider != null)
-            {
-                collider.radius = referencePointRadius * 0.8f;
-            }
-        }
-
-        // Recalculate offsets and update the mesh
-        RecalculateOffsetsAndWeights();
-        UpdateVertexPositions();
-    }
-
-
-    
-    
     public void AbsorbBubble(Blob otherBlob, float absorberSize, float absorbedSize)
     {
         // Debug message for absorption
@@ -196,6 +130,33 @@ public class Blob : MonoBehaviour
             newBlob.springFrequency = this.springFrequency;
             newBlob.mappingDetail = this.mappingDetail;
         }
+    }
+    
+    void CheckForDeformation()
+    {
+        float maxDistance = 0f;
+        float minDistance = float.MaxValue;
+
+        foreach (GameObject referencePoint in referencePoints)
+        {
+            float distance = Vector2.Distance(referencePoint.transform.position, transform.position);
+            maxDistance = Mathf.Max(maxDistance, distance);
+            minDistance = Mathf.Min(minDistance, distance);
+        }
+
+        // Trigger death if deformation exceeds thresholds
+        if (maxDistance > maxDeformationThreshold || minDistance < minDeformationThreshold)
+        {
+            DestroyBubble();
+        }
+    }
+
+    void DestroyBubble()
+    {
+        Debug.Log($"{gameObject.name} has popped!");
+        // Optional: Add particle effects, sound, or other destruction feedback here
+
+        Destroy(gameObject);
     }
     
     
@@ -362,6 +323,10 @@ public class Blob : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetMouseButtonDown(1)) // Right-click to trigger the split
+        {
+            SplitBubble();
+        }
         if (transform.localScale != previousScale)
         {
             RecalculateOffsetsAndWeights();
@@ -369,16 +334,34 @@ public class Blob : MonoBehaviour
             previousScale = transform.localScale;
         }
         UpdateVertexPositions();
-        if (Input.GetMouseButtonDown(0))
+        CheckForDeformation();
+    }
+    
+    void SplitBubble()
+    {
+        if (transform.localScale.x <= 0.5f) 
         {
-
-                // Add force to move the blob to the right
-                /*
-                Rigidbody2D rb = GetComponent<Rigidbody2D>();
-                rb.AddForce(Vector2.right * 10f, ForceMode2D.Impulse); // Adjust the force multiplier as needed
-                */
-   
+            Debug.Log("Bubble is too small to split!");
+            return;
         }
+
+        // Calculate the size of the new bubbles
+        float newSize = transform.localScale.x / 2f;
+
+        // Determine spawn offsets to avoid overlap
+        Vector3 offset1 = new Vector3(-2f, 2f, 0); // Top-left relative offset
+        Vector3 offset2 = new Vector3(2f, -2f, 0); // Bottom-right relative offset
+
+        // Calculate spawn positions
+        Vector3 spawnPosition1 = transform.position + offset1;
+        Vector3 spawnPosition2 = transform.position + offset2;
+
+        // Instantiate the two smaller bubbles
+        SpawnNewBubble(spawnPosition1, newSize);
+        SpawnNewBubble(spawnPosition2, newSize);
+
+        // Destroy the current bubble
+        Destroy(gameObject);
     }
 
     void UpdateVertexPositions()

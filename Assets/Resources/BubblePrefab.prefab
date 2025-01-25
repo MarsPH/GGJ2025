@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 2583538288748644604}
   - component: {fileID: 6117268400983577530}
   - component: {fileID: 4893124512371561081}
-  - component: {fileID: 2012143408249233301}
   m_Layer: 0
   m_Name: BubblePrefab
   m_TagString: Bubble
@@ -77,6 +76,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   referencePointDistance: 0.5
   hasAbsorbed: 0
+  maxDeformationThreshold: 5
+  minDeformationThreshold: 0.08
+  sharpObstacleTag: SharpObstacle
   width: 8
   height: 8
   referencePointsCount: 12
@@ -148,26 +150,3 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &2012143408249233301
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6027363978620767342}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afb335885f42b2d4ea860113a1bf97fd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  zCharging: 0
-  splodeSize: 0
-  explosionEffect: {fileID: 2379417009285242921, guid: 728baa3ac7bc4d049ae6a82e804eaeff, type: 3}
-  canSplode: 0
-  splodeImage: {fileID: 6532860153064646150, guid: 3e9c3d55d1e896c499bc7c0e18664b19, type: 3}
-  thisSplodeImage: {fileID: 0}
-  zClicked: 0
-  goSlider: {fileID: 2420282749092223817, guid: 06ea8c14b16848c449e4e2ce51268f8b, type: 3}
-  sliderFill: 0
-  explosionForce: 10
-  playerRigidbody: {fileID: 0}
