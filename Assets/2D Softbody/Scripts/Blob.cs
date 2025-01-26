@@ -134,9 +134,8 @@ public class Blob : MonoBehaviour
     
     void CheckForDeformation()
     {
-        // Dynamically calculate thresholds relative to the current size
         float maxThreshold = maxDeformationThreshold * (transform.localScale.x / 8f); // Scale max threshold
-        float minThreshold = minDeformationThreshold * (transform.localScale.x / 8f); // Scale min threshold
+        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.5f); // Scale min threshold with a square root factor
 
         float maxDistance = 0f;
         float minDistance = float.MaxValue;
@@ -349,7 +348,7 @@ public class Blob : MonoBehaviour
             return;
         }
 
-        float offsetMultiplier = 0.5f;
+        float offsetMultiplier = 0.3f;
 
         // Calculate the size of the new bubbles
         float newSize = transform.localScale.x / 2f;
