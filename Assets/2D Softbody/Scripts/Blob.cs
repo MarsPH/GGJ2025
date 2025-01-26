@@ -1,6 +1,8 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using Unity.VisualScripting;
+using Random = UnityEngine.Random;
 
 public class Blob : MonoBehaviour
 {
@@ -77,6 +79,7 @@ public class Blob : MonoBehaviour
     private Vector3 previousScale;
     public float referencePointDistance = 0.5f;
     public bool hasAbsorbed = false;
+    public PlayerRespawn playerRespawn;
     
     public float maxDeformationThreshold = 0.5f; // Max allowable deformation
     public float minDeformationThreshold = 0.2f; // Min allowable deformation
@@ -109,6 +112,11 @@ public class Blob : MonoBehaviour
 
     }
 
+    void Awake()
+    {
+        playerRespawn = GetComponent<PlayerRespawn>();
+    }
+
     public void AbsorbBubble(Blob otherBlob, float absorberSize, float absorbedSize)
     {
         // Debug message for absorption
@@ -134,7 +142,7 @@ public class Blob : MonoBehaviour
         Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
         if (newRb != null)
         {
-            newRb.velocity = velocity;
+            //newRb.velocity = velocity;
         }
     }
     
@@ -163,10 +171,11 @@ public class Blob : MonoBehaviour
         Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
         if (newRb != null)
         {
-            newRb.velocity = currentVelocity;
+            //newRb.velocity = currentVelocity;
         }
     }
-    private GameObject SpawnNewBubble(Vector3 position, float size)
+
+    public GameObject SpawnNewBubble(Vector3 position, float size)
     {
         // Ensure the position is valid and not overlapping
         float safetyRadius = size * 0.6f; // Adjust as needed to fit the bubble size
@@ -235,10 +244,13 @@ public class Blob : MonoBehaviour
 
     public void DestroyBubble()
     {
+        
         Debug.Log($"{gameObject.name} has popped!");
         // Optional: Add particle effects, sound, or other destruction feedback here
+        playerRespawn.Respawn();
 
         Destroy(gameObject);
+
     }
     
     
