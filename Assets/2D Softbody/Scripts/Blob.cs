@@ -343,18 +343,44 @@ public class Blob : MonoBehaviour
     
     void SplitBubble()
     {
-        if (transform.localScale.x <= 0.5f) 
+        if (transform.localScale.x <= 1f) 
         {
             Debug.Log("Bubble is too small to split!");
             return;
         }
 
+        float offsetMultiplier = 0.5f;
+
         // Calculate the size of the new bubbles
         float newSize = transform.localScale.x / 2f;
 
-        // Determine spawn offsets to avoid overlap
-        Vector3 offset1 = new Vector3(-2f, 2f, 0); // Top-left relative offset
-        Vector3 offset2 = new Vector3(2f, -2f, 0); // Bottom-right relative offset
+        // Define a random range for offsets
+        float offsetRange = referencePointDistance * transform.localScale.x * offsetMultiplier; // Scale offset based on size
+
+        // Ensure offsetRange is large enough to avoid issues
+        offsetRange = Mathf.Max(offsetRange, newSize * 1.5f);
+
+        // Generate random offsets for each new bubble
+        Vector3 offset1 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
+        Vector3 offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
+
+        int maxAttempts = 100; // Limit attempts to prevent infinite loops
+        int attempts = 0;
+
+        // Ensure the offsets are not too close or overlapping
+        while (Vector3.Distance(offset1, offset2) < newSize && attempts < maxAttempts)
+        {
+            offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
+            attempts++;
+        }
+
+        // If valid offsets couldn't be found, use fallback positions
+        if (attempts >= maxAttempts)
+        {
+            Debug.LogWarning("Couldn't find valid offsets, using fallback positions.");
+            offset1 = new Vector3(-newSize * 1.5f, 0, 0);
+            offset2 = new Vector3(newSize * 1.5f, 0, 0);
+        }
 
         // Calculate spawn positions
         Vector3 spawnPosition1 = transform.position + offset1;
