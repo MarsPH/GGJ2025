@@ -9,6 +9,7 @@ TagManager:
   - Sticky
   - Bubble
   - Food
+  - Enemy
   layers:
   - Default
   - TransparentFX

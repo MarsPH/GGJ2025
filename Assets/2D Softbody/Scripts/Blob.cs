@@ -53,6 +53,15 @@ public class Blob : MonoBehaviour
         }
         private void OnTriggerEnter2D(Collider2D collision)
         {
+            if (collision.CompareTag("Enemy"))
+            {
+                // Call DestroyBubble when colliding with a sharp object
+                Blob parentBlob = transform.parent.GetComponent<Blob>();
+                if (parentBlob != null)
+                {
+                    parentBlob.DestroyBubble();
+                }
+            }
             if (collision.transform.tag == "DetachOne")
             {
                 gameObject.GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.None;
@@ -224,7 +233,7 @@ public class Blob : MonoBehaviour
         }
     }
 
-    void DestroyBubble()
+    public void DestroyBubble()
     {
         Debug.Log($"{gameObject.name} has popped!");
         // Optional: Add particle effects, sound, or other destruction feedback here
