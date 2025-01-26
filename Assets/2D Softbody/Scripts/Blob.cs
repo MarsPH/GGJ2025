@@ -80,7 +80,8 @@ public class Blob : MonoBehaviour
     public float referencePointDistance = 0.5f;
     public bool hasAbsorbed = false;
     public PlayerRespawn playerRespawn;
-    
+    public bool isPlayer = false; // Set this to true for the player bubble
+
     public float maxDeformationThreshold = 0.5f; // Max allowable deformation
     public float minDeformationThreshold = 0.2f; // Min allowable deformation
     public string sharpObstacleTag = "SharpObstacle"; // Tag for sharp obstacles
@@ -119,31 +120,37 @@ public class Blob : MonoBehaviour
 
     public void AbsorbBubble(Blob otherBlob, float absorberSize, float absorbedSize)
     {
-        // Debug message for absorption
         Debug.Log($"{name} is absorbing {otherBlob.name}");
 
         // Calculate the size of the new bubble
         float newSize = Mathf.Sqrt((absorberSize * absorberSize) + (absorbedSize * absorbedSize));
 
-        // Calculate the position for the new bubble (centered between the two bubbles)
-        Vector3 newPosition = (transform.position + otherBlob.transform.position) / 2;
-
         // Store the velocity of the absorbing bubble
         Vector2 velocity = GetComponent<Rigidbody2D>().velocity;
-        
-        // Destroy the current bubbles
-        Destroy(gameObject);
+
+        // Destroy the absorbed bubble
         Destroy(otherBlob.gameObject);
 
         // Instantiate a new larger bubble
-        GameObject newBubble = SpawnNewBubble(newPosition, newSize);
+        GameObject newBubble = SpawnNewBubble(transform.position, newSize);
 
         // Transfer the velocity to the new bubble
         Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
         if (newRb != null)
         {
-            //newRb.velocity = velocity;
+            newRb.velocity = velocity;
         }
+
+        // Ensure the new bubble retains the "PlayerMain" tag
+        newBubble.tag = "PlayerMain";
+        SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+        if (cameraFollow != null)
+        {
+            cameraFollow.UpdateTarget(newBubble.transform);
+        }
+
+        // Destroy the current bubble
+        Destroy(gameObject);
     }
     
     
@@ -175,16 +182,14 @@ public class Blob : MonoBehaviour
         }
     }
 
-    public GameObject SpawnNewBubble(Vector3 position, float size)
+    public GameObject SpawnNewBubble(Vector3 position, float size, bool isPlayer = false)
     {
-        // Ensure the position is valid and not overlapping
-        float safetyRadius = size * 0.6f; // Adjust as needed to fit the bubble size
-        int maxAttempts = 50; // Limit the number of attempts to prevent infinite loops
+        float safetyRadius = size * 0.6f;
+        int maxAttempts = 50;
         int attempts = 0;
 
         while (Physics2D.OverlapCircle(position, safetyRadius) != null && attempts < maxAttempts)
         {
-            // Adjust position slightly to avoid overlap
             position += new Vector3(Random.Range(-safetyRadius, safetyRadius), Random.Range(-safetyRadius, safetyRadius), 0);
             attempts++;
         }
@@ -194,18 +199,13 @@ public class Blob : MonoBehaviour
             Debug.LogWarning("Could not find a non-overlapping position, spawning at original position.");
         }
 
-        // Reference to your prefab
         GameObject bubblePrefab = Resources.Load<GameObject>("BubblePrefab");
-
-        // Spawn a new bubble
         GameObject newBubble = Instantiate(bubblePrefab, position, Quaternion.identity);
 
-        // Scale the new bubble appropriately
         newBubble.transform.localScale = new Vector3(size, size, 1);
-
-        // Optionally, set other properties on the new bubble
         Blob newBlob = newBubble.GetComponent<Blob>();
-        newBubble.tag = "Bubble";
+        newBubble.tag = isPlayer ? "PlayerMain" : "Bubble"; // Set the tag
+
         if (newBlob != null)
         {
             newBlob.referencePointDistance = this.referencePointDistance;
@@ -213,9 +213,11 @@ public class Blob : MonoBehaviour
             newBlob.springDampingRatio = this.springDampingRatio;
             newBlob.springFrequency = this.springFrequency;
             newBlob.mappingDetail = this.mappingDetail;
+            newBlob.isPlayer = isPlayer; // Set the isPlayer flag
         }
         return newBubble;
     }
+
     
     void CheckForDeformation()
     {
@@ -417,9 +419,13 @@ public class Blob : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(1)) // Right-click to trigger the split
+        if (isPlayer)
         {
-            SplitBubble();
+            // Handle player-specific input
+            if (Input.GetMouseButtonDown(1)) // Right-click to trigger the split
+            {
+                SplitBubble();
+            }
         }
         if (transform.localScale != previousScale)
         {
@@ -431,45 +437,44 @@ public class Blob : MonoBehaviour
         CheckForDeformation();
     }
     
-   void SplitBubble()
+    void SplitBubble()
     {
-         if (transform.localScale.x <= 1.25f) 
+    if (transform.localScale.x <= 1.25f)
     {
         Debug.Log("Bubble is too small to split!");
         return;
     }
 
-    float offsetMultiplier = 0.1f;
+    float offsetMultiplier = 0.05f; // Adjusted to spawn bubbles closer
 
     // Calculate the size of the new bubbles
-    float newSize = transform.localScale.x / 2f;
+    float newSizePlayer = transform.localScale.x * 0.6f; // Bigger bubble for the player
+    float newSizeNPC = transform.localScale.x * 0.4f; // Smaller bubble for the NPC
 
     // Define a random range for offsets
-    float offsetRange = referencePointDistance * transform.localScale.x * offsetMultiplier; // Scale offset based on size
+    float offsetRange = referencePointDistance * transform.localScale.x * offsetMultiplier;
 
-    // Ensure offsetRange is large enough to avoid issues
-    offsetRange = Mathf.Max(offsetRange, newSize * 1.5f);
+    // Ensure offsetRange is large enough
+    offsetRange = Mathf.Max(offsetRange, newSizePlayer * 0.75f);
 
-    // Generate random offsets for each new bubble
+    // Generate random offsets for the two new bubbles
     Vector3 offset1 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
     Vector3 offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
 
-    int maxAttempts = 100; // Limit attempts to prevent infinite loops
+    // Ensure offsets are not overlapping or too close
+    int maxAttempts = 100; // Prevent infinite loops
     int attempts = 0;
-
-    // Ensure the offsets are not too close or overlapping
-    while (Vector3.Distance(offset1, offset2) < newSize && attempts < maxAttempts)
+    while (Vector3.Distance(offset1, offset2) < newSizePlayer && attempts < maxAttempts)
     {
         offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
         attempts++;
     }
 
-    // If valid offsets couldn't be found, use fallback positions
+    // If valid offsets couldn't be found, fallback positions
     if (attempts >= maxAttempts)
     {
-        Debug.LogWarning("Couldn't find valid offsets, using fallback positions.");
-        offset1 = new Vector3(-newSize * 1.5f, 0, 0);
-        offset2 = new Vector3(newSize * 1.5f, 0, 0);
+        offset1 = new Vector3(-newSizePlayer * 1.5f, 0, 0);
+        offset2 = new Vector3(newSizePlayer * 1.5f, 0, 0);
     }
 
     // Calculate spawn positions
@@ -479,27 +484,35 @@ public class Blob : MonoBehaviour
     // Get the current velocity of the original bubble
     Vector2 originalVelocity = GetComponent<Rigidbody2D>().velocity;
 
-    // Instantiate the two smaller bubbles
-    GameObject bubble1 = SpawnNewBubble(spawnPosition1, newSize);
-    GameObject bubble2 = SpawnNewBubble(spawnPosition2, newSize);
+    // Instantiate two new bubbles
+    GameObject bubblePlayer = SpawnNewBubble(spawnPosition1, newSizePlayer, true); // Player bubble
+    GameObject bubbleNPC = SpawnNewBubble(spawnPosition2, newSizeNPC, false); // NPC bubble
 
-    // Apply the original velocity to each new bubble using AddForce
-    Rigidbody2D rb1 = bubble1.GetComponent<Rigidbody2D>();
-    Rigidbody2D rb2 = bubble2.GetComponent<Rigidbody2D>();
+    // Apply velocity to the new bubbles
+    Rigidbody2D rbPlayer = bubblePlayer.GetComponent<Rigidbody2D>();
+    Rigidbody2D rbNPC = bubbleNPC.GetComponent<Rigidbody2D>();
 
-    if (rb1 != null)
+    if (rbPlayer != null)
     {
-        rb1.AddForce(originalVelocity * rb1.mass * 3, ForceMode2D.Impulse); // Apply force proportional to mass
+        rbPlayer.velocity = originalVelocity; // Maintain original velocity
     }
 
-    if (rb2 != null)
+    if (rbNPC != null)
     {
-        rb2.AddForce(originalVelocity * rb2.mass * 3, ForceMode2D.Impulse); // Apply force proportional to mass
+        rbNPC.velocity = originalVelocity * 0.8f; // Slightly slower for the NPC bubble
+    }
+
+    // Update camera to follow the new player bubble
+    SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+    if (cameraFollow != null)
+    {
+        cameraFollow.UpdateTarget(bubblePlayer.transform);
     }
 
     // Destroy the current bubble
     Destroy(gameObject);
     }
+
 
 
     void UpdateVertexPositions()
