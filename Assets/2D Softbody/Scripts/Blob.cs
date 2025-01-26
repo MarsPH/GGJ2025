@@ -159,6 +159,23 @@ public class Blob : MonoBehaviour
     }
     private GameObject SpawnNewBubble(Vector3 position, float size)
     {
+        // Ensure the position is valid and not overlapping
+        float safetyRadius = size * 0.6f; // Adjust as needed to fit the bubble size
+        int maxAttempts = 50; // Limit the number of attempts to prevent infinite loops
+        int attempts = 0;
+
+        while (Physics2D.OverlapCircle(position, safetyRadius) != null && attempts < maxAttempts)
+        {
+            // Adjust position slightly to avoid overlap
+            position += new Vector3(Random.Range(-safetyRadius, safetyRadius), Random.Range(-safetyRadius, safetyRadius), 0);
+            attempts++;
+        }
+
+        if (attempts >= maxAttempts)
+        {
+            Debug.LogWarning("Could not find a non-overlapping position, spawning at original position.");
+        }
+
         // Reference to your prefab
         GameObject bubblePrefab = Resources.Load<GameObject>("BubblePrefab");
 
@@ -185,10 +202,10 @@ public class Blob : MonoBehaviour
     void CheckForDeformation()
     {
         // Scale the max threshold proportionally to the bubble size
-        float maxThreshold = maxDeformationThreshold * (transform.localScale.x / 2f); 
+        float maxThreshold = maxDeformationThreshold * (transform.localScale.x); 
 
         // Scale the min threshold, but make smaller bubbles more forgiving
-        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.01f); 
+        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.0000000001f) ; 
 
         float maxDistance = 0f;
         float minDistance = float.MaxValue;
