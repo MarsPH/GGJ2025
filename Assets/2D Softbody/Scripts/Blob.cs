@@ -457,9 +457,31 @@ public class Blob : MonoBehaviour
     {
         
         Debug.Log($"{gameObject.name} has popped!");
-        // Optional: Add particle effects, sound, or other destruction feedback here
-        playerRespawn.Respawn();
 
+        // Reduce hearts
+        GameManager.Instance.CurrentHearts--;
+
+        // Check for Game Over
+        if (GameManager.Instance.CurrentHearts <= 0)
+        {
+            Debug.Log("No hearts left. Game Over!");
+            GameManager.Instance.GameOver();
+            Destroy(gameObject);
+            return;
+        }
+
+        // Spawn a new player bubble
+        Vector3 safePosition = FindSafePosition(transform.position, 1.0f);
+        GameObject newBubble = SpawnNewBubble(safePosition, transform.localScale.x, true);
+
+        // Update the camera to follow the new bubble
+        SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+        if (cameraFollow != null)
+        {
+            cameraFollow.UpdateTarget(newBubble.transform);
+        }
+
+        // Destroy the current bubble
         Destroy(gameObject);
 
     }
