@@ -145,8 +145,11 @@ public class Blob : MonoBehaviour
     
     void CheckForDeformation()
     {
-        float maxThreshold = maxDeformationThreshold * (transform.localScale.x / 8f); // Scale max threshold
-        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.5f); // Scale min threshold with a square root factor
+        // Scale the max threshold proportionally to the bubble size
+        float maxThreshold = maxDeformationThreshold * (transform.localScale.x / 8f); 
+
+        // Scale the min threshold, but make smaller bubbles more forgiving
+        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.01f); 
 
         float maxDistance = 0f;
         float minDistance = float.MaxValue;
@@ -351,58 +354,76 @@ public class Blob : MonoBehaviour
         CheckForDeformation();
     }
     
-    void SplitBubble()
+   void SplitBubble()
     {
-        if (transform.localScale.x <= 2f) 
-        {
-            Debug.Log("Bubble is too small to split!");
-            return;
-        }
-
-        float offsetMultiplier = 0.3f;
-
-        // Calculate the size of the new bubbles
-        float newSize = transform.localScale.x / 2f;
-
-        // Define a random range for offsets
-        float offsetRange = referencePointDistance * transform.localScale.x * offsetMultiplier; // Scale offset based on size
-
-        // Ensure offsetRange is large enough to avoid issues
-        offsetRange = Mathf.Max(offsetRange, newSize * 1.5f);
-
-        // Generate random offsets for each new bubble
-        Vector3 offset1 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
-        Vector3 offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
-
-        int maxAttempts = 100; // Limit attempts to prevent infinite loops
-        int attempts = 0;
-
-        // Ensure the offsets are not too close or overlapping
-        while (Vector3.Distance(offset1, offset2) < newSize && attempts < maxAttempts)
-        {
-            offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
-            attempts++;
-        }
-
-        // If valid offsets couldn't be found, use fallback positions
-        if (attempts >= maxAttempts)
-        {
-            Debug.LogWarning("Couldn't find valid offsets, using fallback positions.");
-            offset1 = new Vector3(-newSize * 1.5f, 0, 0);
-            offset2 = new Vector3(newSize * 1.5f, 0, 0);
-        }
-
-        // Calculate spawn positions
-        Vector3 spawnPosition1 = transform.position + offset1;
-        Vector3 spawnPosition2 = transform.position + offset2;
-
-        // Instantiate the two smaller bubbles
-        SpawnNewBubble(spawnPosition1, newSize);
-        SpawnNewBubble(spawnPosition2, newSize);
-
-        // Destroy the current bubble
-        Destroy(gameObject);
+         if (transform.localScale.x <= 1.25f) 
+    {
+        Debug.Log("Bubble is too small to split!");
+        return;
     }
+
+    float offsetMultiplier = 0.1f;
+
+    // Calculate the size of the new bubbles
+    float newSize = transform.localScale.x / 2f;
+
+    // Define a random range for offsets
+    float offsetRange = referencePointDistance * transform.localScale.x * offsetMultiplier; // Scale offset based on size
+
+    // Ensure offsetRange is large enough to avoid issues
+    offsetRange = Mathf.Max(offsetRange, newSize * 1.5f);
+
+    // Generate random offsets for each new bubble
+    Vector3 offset1 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
+    Vector3 offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
+
+    int maxAttempts = 100; // Limit attempts to prevent infinite loops
+    int attempts = 0;
+
+    // Ensure the offsets are not too close or overlapping
+    while (Vector3.Distance(offset1, offset2) < newSize && attempts < maxAttempts)
+    {
+        offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
+        attempts++;
+    }
+
+    // If valid offsets couldn't be found, use fallback positions
+    if (attempts >= maxAttempts)
+    {
+        Debug.LogWarning("Couldn't find valid offsets, using fallback positions.");
+        offset1 = new Vector3(-newSize * 1.5f, 0, 0);
+        offset2 = new Vector3(newSize * 1.5f, 0, 0);
+    }
+
+    // Calculate spawn positions
+    Vector3 spawnPosition1 = transform.position + offset1;
+    Vector3 spawnPosition2 = transform.position + offset2;
+
+    // Get the current velocity of the original bubble
+    Vector2 originalVelocity = GetComponent<Rigidbody2D>().velocity;
+
+    // Instantiate the two smaller bubbles
+    GameObject bubble1 = SpawnNewBubble(spawnPosition1, newSize);
+    GameObject bubble2 = SpawnNewBubble(spawnPosition2, newSize);
+
+    // Apply the original velocity to each new bubble using AddForce
+    Rigidbody2D rb1 = bubble1.GetComponent<Rigidbody2D>();
+    Rigidbody2D rb2 = bubble2.GetComponent<Rigidbody2D>();
+
+    if (rb1 != null)
+    {
+        rb1.AddForce(originalVelocity * rb1.mass * 3, ForceMode2D.Impulse); // Apply force proportional to mass
+    }
+
+    if (rb2 != null)
+    {
+        rb2.AddForce(originalVelocity * rb2.mass * 3, ForceMode2D.Impulse); // Apply force proportional to mass
+    }
+
+    // Destroy the current bubble
+    Destroy(gameObject);
+    }
+
 
     void UpdateVertexPositions()
     {
