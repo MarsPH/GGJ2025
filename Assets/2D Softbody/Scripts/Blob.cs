@@ -40,6 +40,16 @@ public class Blob : MonoBehaviour
                     }
                 }
             }
+            else if (collision.transform.CompareTag("Food"))
+            {
+                // Notify the Blob class to absorb food
+                Blob parentBlob = transform.parent.GetComponent<Blob>();
+                if (parentBlob != null)
+                {
+                    parentBlob.AbsorbFood(collision.transform.gameObject);
+                }
+            }
+            
         }
         private void OnTriggerEnter2D(Collider2D collision)
         {
@@ -118,6 +128,35 @@ public class Blob : MonoBehaviour
             newRb.velocity = velocity;
         }
     }
+    
+    
+    
+    void AbsorbFood(GameObject foodObject)
+    {
+        Debug.Log($"{name} is eating food!");
+
+        // Calculate the size increment based on the food object's scale
+        float foodSize = foodObject.transform.localScale.x;
+        float currentSize = transform.localScale.x;
+        float newSize = Mathf.Sqrt((currentSize * currentSize) + (foodSize * foodSize));
+
+        // Save the bubble's velocity
+        Vector2 currentVelocity = GetComponent<Rigidbody2D>().velocity;
+
+        // Destroy the current bubble and the food object
+        Destroy(gameObject);
+        Destroy(foodObject);
+
+        // Spawn a new larger bubble
+        GameObject newBubble = SpawnNewBubble(transform.position, newSize);
+
+        // Transfer the velocity to the new bubble
+        Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
+        if (newRb != null)
+        {
+            newRb.velocity = currentVelocity;
+        }
+    }
     private GameObject SpawnNewBubble(Vector3 position, float size)
     {
         // Reference to your prefab
@@ -146,7 +185,7 @@ public class Blob : MonoBehaviour
     void CheckForDeformation()
     {
         // Scale the max threshold proportionally to the bubble size
-        float maxThreshold = maxDeformationThreshold * (transform.localScale.x / 8f); 
+        float maxThreshold = maxDeformationThreshold * (transform.localScale.x / 2f); 
 
         // Scale the min threshold, but make smaller bubbles more forgiving
         float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.01f); 
