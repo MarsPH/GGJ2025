@@ -25,7 +25,7 @@ public class PlayerRespawn : MonoBehaviour
         if (respawnPosition != Vector3.zero && currentBlob != null)
         {
             // Use the SpawnNewBubble method from Blob
-            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize(), true);
+            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize());
             Debug.Log("Respawned bubble at checkpoint!");
         }
         else
