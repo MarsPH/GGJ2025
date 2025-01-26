@@ -10,7 +10,7 @@ public class Checkpoint : MonoBehaviour
         {
             // Save this checkpoint as the player's last checkpoint
             CheckpointManager.Instance.SetCheckpoint(transform.position);
-            Debug.Log("Checkpoint updated!");
+            //Debug.Log("Checkpoint updated!");
         }
     }
 }

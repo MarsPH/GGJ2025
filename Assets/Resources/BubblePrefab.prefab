@@ -75,6 +75,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba9f475a53b8e4087aad6179ad5ce543, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  healthSlider: {fileID: 0}
   splitIndicator: {fileID: 0}
   referencePointDistance: 0.5
   hasAbsorbed: 0
@@ -104,6 +105,8 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
+  totalCollectibles: 5
+  maxHearts: 3
 --- !u!33 &6117268400983577530
 MeshFilter:
   m_ObjectHideFlags: 0

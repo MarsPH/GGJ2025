@@ -54,6 +54,8 @@ public class Blob : MonoBehaviour
             }
             
         }
+        
+        
         private void OnTriggerEnter2D(Collider2D collision)
         {
             if (collision.CompareTag("Splitter"))
@@ -72,7 +74,15 @@ public class Blob : MonoBehaviour
                 Blob parentBlob = transform.parent.GetComponent<Blob>();
                 if (parentBlob != null)
                 {
-                    parentBlob.DestroyBubble();
+                    parentBlob.TakeDamage();
+                }
+            }
+            else if (collision.CompareTag("Collectible"))
+            {
+                Blob parentBlob = transform.parent.GetComponent<Blob>();
+                if (parentBlob != null)
+                {
+                    parentBlob.CollectItem(collision.gameObject);
                 }
             }
             if (collision.transform.tag == "DetachOne")
@@ -86,7 +96,20 @@ public class Blob : MonoBehaviour
 
             }
         }
+       
     }
+    public void UpdateHealthUI()
+    {
+        //healthSlider.value = (float)GameManager.Instance.CurrentHearts / GameManager.Instance.MaxHearts;
+    }
+    
+    public void LoseGame()
+    {
+        Debug.Log("Game Over!");
+        // Add code to transition to a game over scene or display lose UI
+        UnityEngine.SceneManagement.SceneManager.LoadScene("GameOverScene");
+    }
+    public Slider healthSlider; // Assign via the Inspector
     public Image splitIndicator; // Reference to the SplitIndicator UI image
     private Vector3 previousScale;
     public float referencePointDistance = 0.5f;
@@ -114,9 +137,34 @@ public class Blob : MonoBehaviour
     Vector2[] uv;
     Vector3[,] offsets;
     float[,] weights;
+    
+    public int totalCollectibles = 5; // Total collectibles to win
+    private int collectedCount = 0;
 
+    public void CollectItem(GameObject collectible)
+    {
+        GameManager.Instance.CollectedCount++;
+        Destroy(collectible);
+
+        Debug.Log($"Collected {GameManager.Instance.CollectedCount}/{GameManager.Instance.TotalCollectibles} items.");
+
+        if (GameManager.Instance.CollectedCount >= GameManager.Instance.TotalCollectibles)
+        {
+            GameManager.Instance.WinGame(); // Trigger win condition when all collectibles are gathered
+        }
+    }
+    
+    public int maxHearts = 3; // Maximum number of hearts
+    private int currentHearts;
+    public void WinGame()
+    {
+        Debug.Log("You Win!");
+        // Add code to transition to a win scene or display win UI
+        UnityEngine.SceneManagement.SceneManager.LoadScene("WinScene");
+    }
     void Start()
     {
+        currentHearts = maxHearts; // Initialize hearts
         if (splitIndicator == null)
         {
             Debug.LogError("SplitIndicator UI is not assigned in the Blob script.");
@@ -127,6 +175,45 @@ public class Blob : MonoBehaviour
         CreateMesh();
         MapVerticesToReferencePoints();
 
+    }
+    private float damageCooldown = 1f; // 1 second cooldown
+    private float lastDamageTime = -1f; // Tracks the last time damage was taken
+
+    public void TakeDamage()
+    {
+        // Check if cooldown has passed
+        if (Time.time - lastDamageTime < damageCooldown)
+        {
+            return; // Exit if still in cooldown
+        }
+
+        lastDamageTime = Time.time; // Update last damage time
+
+        GameManager.Instance.CurrentHearts--;
+
+        Debug.Log($"Bubble took damage! Hearts left: {GameManager.Instance.CurrentHearts}");
+
+        // Update health UI
+        UpdateHealthUI();
+
+        if (GameManager.Instance.CurrentHearts <= 0)
+        {
+            GameManager.Instance.GameOver(); // Trigger game over when health runs out
+            Destroy(gameObject); // Destroy the current bubble
+        }
+        else
+        {
+            Vector3 safePosition = FindSafePosition(transform.position, 1.0f); // Ensure new position is safe
+            GameObject newBubble = SpawnNewBubble(safePosition, transform.localScale.x, true); // Spawn a new bubble
+
+            SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+            if (cameraFollow != null)
+            {
+                cameraFollow.UpdateTarget(newBubble.transform); // Update camera to follow the new bubble
+            }
+
+            Destroy(gameObject); // Destroy the current bubble
+        }
     }
 
     void Awake()
