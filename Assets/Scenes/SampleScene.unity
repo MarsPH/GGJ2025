@@ -214,6 +214,14 @@ PrefabInstance:
       propertyPath: mappingDetail
       value: 15
       objectReference: {fileID: 0}
+    - target: {fileID: 6093525565303118457, guid: c0a346862bf6fbe42803fd285b93827f, type: 3}
+      propertyPath: maxDeformationThreshold
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6093525565303118457, guid: c0a346862bf6fbe42803fd285b93827f, type: 3}
+      propertyPath: minDeformationThreshold
+      value: 0.08
+      objectReference: {fileID: 0}
     - target: {fileID: 6240147449037902413, guid: c0a346862bf6fbe42803fd285b93827f, type: 3}
       propertyPath: m_Materials.Array.size
       value: 1

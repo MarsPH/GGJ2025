@@ -101,14 +101,24 @@ public class Blob : MonoBehaviour
         // Calculate the position for the new bubble (centered between the two bubbles)
         Vector3 newPosition = (transform.position + otherBlob.transform.position) / 2;
 
+        // Store the velocity of the absorbing bubble
+        Vector2 velocity = GetComponent<Rigidbody2D>().velocity;
+        
         // Destroy the current bubbles
         Destroy(gameObject);
         Destroy(otherBlob.gameObject);
 
         // Instantiate a new larger bubble
-        SpawnNewBubble(newPosition, newSize);
+        GameObject newBubble = SpawnNewBubble(newPosition, newSize);
+
+        // Transfer the velocity to the new bubble
+        Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
+        if (newRb != null)
+        {
+            newRb.velocity = velocity;
+        }
     }
-    private void SpawnNewBubble(Vector3 position, float size)
+    private GameObject SpawnNewBubble(Vector3 position, float size)
     {
         // Reference to your prefab
         GameObject bubblePrefab = Resources.Load<GameObject>("BubblePrefab");
@@ -130,6 +140,7 @@ public class Blob : MonoBehaviour
             newBlob.springFrequency = this.springFrequency;
             newBlob.mappingDetail = this.mappingDetail;
         }
+        return newBubble;
     }
     
     void CheckForDeformation()
@@ -342,7 +353,7 @@ public class Blob : MonoBehaviour
     
     void SplitBubble()
     {
-        if (transform.localScale.x <= 1f) 
+        if (transform.localScale.x <= 2f) 
         {
             Debug.Log("Bubble is too small to split!");
             return;
