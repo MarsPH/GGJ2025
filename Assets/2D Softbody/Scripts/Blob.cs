@@ -134,6 +134,10 @@ public class Blob : MonoBehaviour
     
     void CheckForDeformation()
     {
+        // Dynamically calculate thresholds relative to the current size
+        float maxThreshold = maxDeformationThreshold * (transform.localScale.x / 8f); // Scale max threshold
+        float minThreshold = minDeformationThreshold * (transform.localScale.x / 8f); // Scale min threshold
+
         float maxDistance = 0f;
         float minDistance = float.MaxValue;
 
@@ -145,7 +149,7 @@ public class Blob : MonoBehaviour
         }
 
         // Trigger death if deformation exceeds thresholds
-        if (maxDistance > maxDeformationThreshold || minDistance < minDeformationThreshold)
+        if (maxDistance > maxThreshold || minDistance < minThreshold)
         {
             DestroyBubble();
         }
