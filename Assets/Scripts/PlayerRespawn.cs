@@ -25,7 +25,7 @@ public class PlayerRespawn : MonoBehaviour
         if (respawnPosition != Vector3.zero && currentBlob != null)
         {
             // Use the SpawnNewBubble method from Blob
-            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize());
+            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize(), true);
             Debug.Log("Respawned bubble at checkpoint!");
         }
         else
@@ -44,7 +44,7 @@ public class PlayerRespawn : MonoBehaviour
         if (respawnPosition != Vector3.zero && currentBlob != null)
         {
             // Use the SpawnNewBubble method from Blob
-            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize());
+            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize(), true);
             Debug.Log("Respawned bubble at checkpoint!");
         }
         else

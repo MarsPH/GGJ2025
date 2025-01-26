@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 4691236210273228488}
   m_Layer: 0
   m_Name: BubblePrefab
-  m_TagString: Bubble
+  m_TagString: PlayerMain
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -75,9 +75,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba9f475a53b8e4087aad6179ad5ce543, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  splitIndicator: {fileID: 0}
   referencePointDistance: 0.5
   hasAbsorbed: 0
   playerRespawn: {fileID: 0}
+  isPlayer: 1
   maxDeformationThreshold: 5
   minDeformationThreshold: 0.05
   sharpObstacleTag: SharpObstacle

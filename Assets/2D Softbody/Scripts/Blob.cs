@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections;
 using Unity.VisualScripting;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class Blob : MonoBehaviour
@@ -55,6 +56,16 @@ public class Blob : MonoBehaviour
         }
         private void OnTriggerEnter2D(Collider2D collision)
         {
+            if (collision.CompareTag("Splitter"))
+            {
+                Debug.Log("Entered Splitter Trigger!");
+                // Access the parent Blob script and call SplitBubbleUsingSplitter
+                Blob parentBlob = transform.parent.GetComponent<Blob>();
+                if (parentBlob != null)
+                {
+                    parentBlob.SplitBubbleUsingSplitter(collision.transform.position);
+                }
+            }
             if (collision.CompareTag("Enemy"))
             {
                 // Call DestroyBubble when colliding with a sharp object
@@ -76,6 +87,7 @@ public class Blob : MonoBehaviour
             }
         }
     }
+    public Image splitIndicator; // Reference to the SplitIndicator UI image
     private Vector3 previousScale;
     public float referencePointDistance = 0.5f;
     public bool hasAbsorbed = false;
@@ -105,6 +117,10 @@ public class Blob : MonoBehaviour
 
     void Start()
     {
+        if (splitIndicator == null)
+        {
+            Debug.LogError("SplitIndicator UI is not assigned in the Blob script.");
+        }
         previousScale = transform.localScale;
 
         CreateReferencePoints();
@@ -126,31 +142,74 @@ public class Blob : MonoBehaviour
         float newSize = Mathf.Sqrt((absorberSize * absorberSize) + (absorbedSize * absorbedSize));
 
         // Store the velocity of the absorbing bubble
-        Vector2 velocity = GetComponent<Rigidbody2D>().velocity;
+        Vector2 originalVelocity = GetComponent<Rigidbody2D>().velocity;
 
         // Destroy the absorbed bubble
         Destroy(otherBlob.gameObject);
 
+        // Find a safe position for the new bubble
+        Vector3 spawnPosition = FindSafePosition(transform.position, newSize * 0.6f);
+
         // Instantiate a new larger bubble
-        GameObject newBubble = SpawnNewBubble(transform.position, newSize);
+        GameObject newBubble = SpawnNewBubble(spawnPosition, newSize, true);
 
         // Transfer the velocity to the new bubble
         Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
         if (newRb != null)
         {
-            newRb.velocity = velocity;
+            newRb.velocity = originalVelocity;
         }
 
-        // Ensure the new bubble retains the "PlayerMain" tag
-        newBubble.tag = "PlayerMain";
-        SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
-        if (cameraFollow != null)
+        // Update the camera to follow the new bubble if it is the player
+        if (isPlayer)
         {
-            cameraFollow.UpdateTarget(newBubble.transform);
+            SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+            if (cameraFollow != null)
+            {
+                cameraFollow.UpdateTarget(newBubble.transform);
+            }
         }
 
         // Destroy the current bubble
         Destroy(gameObject);
+    }
+    
+   
+    
+    private Vector3 FindSafePosition(Vector3 originalPosition, float safetyRadius)
+    {
+        int maxAttempts = 50; // Limit attempts to prevent infinite loops
+        for (int attempts = 0; attempts < maxAttempts; attempts++)
+        {
+            Vector3 offset = new Vector3(
+                Random.Range(-safetyRadius, safetyRadius),
+                Random.Range(-safetyRadius, safetyRadius),
+                0
+            );
+
+            Vector3 testPosition = originalPosition + offset;
+
+            // Check for overlapping colliders, including the splitter
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(testPosition, safetyRadius);
+            bool hasCollision = false;
+
+            foreach (Collider2D collider in colliders)
+            {
+                if (collider.gameObject.CompareTag("Splitter") || collider.gameObject != this.gameObject)
+                {
+                    hasCollision = true;
+                    break;
+                }
+            }
+
+            if (!hasCollision)
+            {
+                return testPosition; // Valid position found
+            }
+        }
+
+        //Debug.LogWarning("Could not find a safe position for bubble splitting.");
+        return originalPosition; // Fallback
     }
     
     
@@ -180,6 +239,69 @@ public class Blob : MonoBehaviour
         {
             //newRb.velocity = currentVelocity;
         }
+    }
+    
+    public void SplitBubbleUsingSplitter(Vector3 splitterPosition)
+    {
+        if (transform.localScale.x <= 1.25f)
+        {
+            Debug.Log("Bubble is too small to split!");
+            return;
+        }
+
+        // Fetch spawn points from the splitter
+        Collider2D splitterCollider = Physics2D.OverlapPoint(splitterPosition);
+        if (splitterCollider == null || !splitterCollider.CompareTag("Splitter"))
+        {
+            Debug.LogWarning("Splitter not found or invalid.");
+            return;
+        }
+
+        Transform splitterTransform = splitterCollider.transform;
+        Transform spawnPoint1 = splitterTransform.Find("SpawnPoint1");
+        Transform spawnPoint2 = splitterTransform.Find("SpawnPoint2");
+
+        if (spawnPoint1 == null || spawnPoint2 == null)
+        {
+            Debug.LogError("Splitter does not have assigned spawn points.");
+            return;
+        }
+
+        float newSizePlayer = transform.localScale.x * 0.6f; // Player bubble size
+        float newSizeNPC = transform.localScale.x * 0.4f;   // NPC bubble size
+
+        Vector2 originalVelocity = GetComponent<Rigidbody2D>().velocity;
+
+        // Use predefined spawn points
+        GameObject bubblePlayer = SpawnNewBubble(spawnPoint1.position, newSizePlayer, true);
+        GameObject bubbleNPC = SpawnNewBubble(spawnPoint2.position, newSizeNPC, false);
+
+        // Apply velocities to new bubbles
+        Rigidbody2D rbPlayer = bubblePlayer.GetComponent<Rigidbody2D>();
+        Rigidbody2D rbNPC = bubbleNPC.GetComponent<Rigidbody2D>();
+
+        if (rbPlayer != null)
+        {
+            rbPlayer.velocity = originalVelocity;
+        }
+
+        if (rbNPC != null)
+        {
+            rbNPC.velocity = originalVelocity * 0.8f; // Slightly slower NPC
+        }
+
+        // Update camera to follow the new player
+        SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+        if (cameraFollow != null)
+        {
+            cameraFollow.UpdateTarget(bubblePlayer.transform);
+        }
+
+        // Destroy the splitter after splitting
+        Destroy(splitterTransform.gameObject);
+
+        // Destroy the current bubble
+        Destroy(gameObject);
     }
 
     public GameObject SpawnNewBubble(Vector3 position, float size, bool isPlayer = false)
@@ -419,10 +541,14 @@ public class Blob : MonoBehaviour
 
     void Update()
     {
+        //UpdateSplitIndicator();
         if (isPlayer)
         {
-            // Handle player-specific input
-            if (Input.GetMouseButtonDown(1)) // Right-click to trigger the split
+            // Update split indicator status
+            UpdateSplitIndicator();
+
+            // Handle splitting if possible
+            if (Input.GetMouseButtonDown(1)) // Right-click to split
             {
                 SplitBubble();
             }
@@ -437,72 +563,74 @@ public class Blob : MonoBehaviour
         CheckForDeformation();
     }
     
-    void SplitBubble()
+    void UpdateSplitIndicator()
     {
+        if (splitIndicator == null) return;
+
+        // Green if split is possible; red otherwise
+        splitIndicator.color = CanSplitBubble() ? Color.green : Color.red;
+    }
+    
+    bool CanSplitBubble()
+    {
+        if (transform.localScale.x <= 1.25f)
+        {
+            Debug.Log("Bubble too small to split.");
+            return false;
+        }
+
+        // Test for valid positions
+        float newSizePlayer = transform.localScale.x * 0.6f;
+        float newSizeNPC = transform.localScale.x * 0.4f;
+        Vector3 spawnPosition1 = FindSafePosition(transform.position, newSizePlayer * 0.6f);
+        Vector3 spawnPosition2 = FindSafePosition(transform.position, newSizeNPC * 0.6f);
+
+        // If both positions are valid
+        return spawnPosition1 != transform.position && spawnPosition2 != transform.position;
+    }
+    
+    void SplitBubble()
+{
     if (transform.localScale.x <= 1.25f)
     {
         Debug.Log("Bubble is too small to split!");
         return;
     }
 
-    float offsetMultiplier = 0.05f; // Adjusted to spawn bubbles closer
+    float newSizePlayer = transform.localScale.x * 0.6f; // Player bubble size
+    float newSizeNPC = transform.localScale.x * 0.4f;   // NPC bubble size
 
-    // Calculate the size of the new bubbles
-    float newSizePlayer = transform.localScale.x * 0.6f; // Bigger bubble for the player
-    float newSizeNPC = transform.localScale.x * 0.4f; // Smaller bubble for the NPC
+    // Attempt to find valid positions for the bubbles
+    Vector3 spawnPosition1 = FindSafePosition(transform.position, newSizePlayer * 0.6f);
+    Vector3 spawnPosition2 = FindSafePosition(transform.position, newSizeNPC * 0.6f);
 
-    // Define a random range for offsets
-    float offsetRange = referencePointDistance * transform.localScale.x * offsetMultiplier;
-
-    // Ensure offsetRange is large enough
-    offsetRange = Mathf.Max(offsetRange, newSizePlayer * 0.75f);
-
-    // Generate random offsets for the two new bubbles
-    Vector3 offset1 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
-    Vector3 offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
-
-    // Ensure offsets are not overlapping or too close
-    int maxAttempts = 100; // Prevent infinite loops
-    int attempts = 0;
-    while (Vector3.Distance(offset1, offset2) < newSizePlayer && attempts < maxAttempts)
+    if (spawnPosition1 == transform.position || spawnPosition2 == transform.position)
     {
-        offset2 = new Vector3(Random.Range(-offsetRange, offsetRange), Random.Range(-offsetRange, offsetRange), 0);
-        attempts++;
+        Debug.LogWarning("Failed to find valid split positions.");
+        return;
     }
 
-    // If valid offsets couldn't be found, fallback positions
-    if (attempts >= maxAttempts)
-    {
-        offset1 = new Vector3(-newSizePlayer * 1.5f, 0, 0);
-        offset2 = new Vector3(newSizePlayer * 1.5f, 0, 0);
-    }
-
-    // Calculate spawn positions
-    Vector3 spawnPosition1 = transform.position + offset1;
-    Vector3 spawnPosition2 = transform.position + offset2;
-
-    // Get the current velocity of the original bubble
     Vector2 originalVelocity = GetComponent<Rigidbody2D>().velocity;
 
-    // Instantiate two new bubbles
-    GameObject bubblePlayer = SpawnNewBubble(spawnPosition1, newSizePlayer, true); // Player bubble
-    GameObject bubbleNPC = SpawnNewBubble(spawnPosition2, newSizeNPC, false); // NPC bubble
+    // Spawn the player and NPC bubbles
+    GameObject bubblePlayer = SpawnNewBubble(spawnPosition1, newSizePlayer, true);
+    GameObject bubbleNPC = SpawnNewBubble(spawnPosition2, newSizeNPC, false);
 
-    // Apply velocity to the new bubbles
+    // Apply velocities to new bubbles
     Rigidbody2D rbPlayer = bubblePlayer.GetComponent<Rigidbody2D>();
     Rigidbody2D rbNPC = bubbleNPC.GetComponent<Rigidbody2D>();
 
     if (rbPlayer != null)
     {
-        rbPlayer.velocity = originalVelocity; // Maintain original velocity
+        rbPlayer.velocity = originalVelocity;
     }
 
     if (rbNPC != null)
     {
-        rbNPC.velocity = originalVelocity * 0.8f; // Slightly slower for the NPC bubble
+        rbNPC.velocity = originalVelocity * 0.8f; // Slightly slower NPC
     }
 
-    // Update camera to follow the new player bubble
+    // Update camera to follow the new player
     SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
     if (cameraFollow != null)
     {
@@ -511,6 +639,32 @@ public class Blob : MonoBehaviour
 
     // Destroy the current bubble
     Destroy(gameObject);
+}
+    // This triggers the "too small to split" visual effect
+    void TriggerSplitNotAllowedVisual()
+    {
+        MeshRenderer renderer = GetComponent<MeshRenderer>();
+        if (renderer != null)
+        {
+            MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
+            renderer.GetPropertyBlock(propertyBlock);
+            propertyBlock.SetColor("_Color", Color.red); // Adjust to your shader's color property
+            renderer.SetPropertyBlock(propertyBlock);
+
+            Invoke(nameof(ResetSplitVisual), 0.5f); // Reset after 0.5 seconds
+        }
+    }
+
+    void ResetSplitVisual()
+    {
+        MeshRenderer renderer = GetComponent<MeshRenderer>();
+        if (renderer != null)
+        {
+            MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
+            renderer.GetPropertyBlock(propertyBlock);
+            propertyBlock.SetColor("_Color", Color.white); // Reset to original color
+            renderer.SetPropertyBlock(propertyBlock);
+        }
     }
 
 

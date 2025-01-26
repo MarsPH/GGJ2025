@@ -10,6 +10,7 @@ TagManager:
   - Bubble
   - Food
   - Enemy
+  - Splitter
   layers:
   - Default
   - TransparentFX
