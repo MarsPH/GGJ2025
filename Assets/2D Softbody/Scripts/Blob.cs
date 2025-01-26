@@ -189,31 +189,8 @@ public class Blob : MonoBehaviour
 
         lastDamageTime = Time.time; // Update last damage time
 
-        GameManager.Instance.CurrentHearts--;
-
         Debug.Log($"Bubble took damage! Hearts left: {GameManager.Instance.CurrentHearts}");
-
-        // Update health UI
-        UpdateHealthUI();
-
-        if (GameManager.Instance.CurrentHearts <= 0)
-        {
-            GameManager.Instance.GameOver(); // Trigger game over when health runs out
-            Destroy(gameObject); // Destroy the current bubble
-        }
-        else
-        {
-            Vector3 safePosition = FindSafePosition(transform.position, 1.0f); // Ensure new position is safe
-            GameObject newBubble = SpawnNewBubble(safePosition, transform.localScale.x, true); // Spawn a new bubble
-
-            SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
-            if (cameraFollow != null)
-            {
-                cameraFollow.UpdateTarget(newBubble.transform); // Update camera to follow the new bubble
-            }
-
-            Destroy(gameObject); // Destroy the current bubble
-        }
+        DestroyBubble();
     }
 
     void Awake()
@@ -318,7 +295,7 @@ public class Blob : MonoBehaviour
         Destroy(foodObject);
 
         // Spawn a new larger bubble
-        GameObject newBubble = SpawnNewBubble(transform.position, newSize);
+        GameObject newBubble = SpawnNewBubble(transform.position, newSize, true);
 
         // Transfer the velocity to the new bubble
         Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
@@ -434,7 +411,7 @@ public class Blob : MonoBehaviour
         float maxThreshold = maxDeformationThreshold * (transform.localScale.x); 
 
         // Scale the min threshold, but make smaller bubbles more forgiving
-        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.0000000001f) ; 
+        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.0000000001f) * 0 ; 
 
         float maxDistance = 0f;
         float minDistance = float.MaxValue;
@@ -455,7 +432,6 @@ public class Blob : MonoBehaviour
 
     public void DestroyBubble()
     {
-        
         Debug.Log($"{gameObject.name} has popped!");
 
         // Reduce hearts
@@ -470,20 +446,29 @@ public class Blob : MonoBehaviour
             return;
         }
 
-        // Spawn a new player bubble
-        Vector3 safePosition = FindSafePosition(transform.position, 1.0f);
-        GameObject newBubble = SpawnNewBubble(safePosition, transform.localScale.x, true);
+        // Get the checkpoint position
+        Vector3 respawnPosition = CheckpointManager.Instance.GetCheckpointPosition();
+        Debug.Log($"Respawning at checkpoint: {respawnPosition}");
 
-        // Update the camera to follow the new bubble
-        SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
-        if (cameraFollow != null)
+        if (respawnPosition != Vector3.zero)
         {
-            cameraFollow.UpdateTarget(newBubble.transform);
+            // Respawn the player at the checkpoint
+            GameObject newBubble = SpawnNewBubble(respawnPosition, transform.localScale.x, true);
+
+            // Update the camera to follow the new bubble
+            SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+            if (cameraFollow != null)
+            {
+                cameraFollow.UpdateTarget(newBubble.transform);
+            }
+
+            // Destroy the current bubble
+            Destroy(gameObject);
         }
-
-        // Destroy the current bubble
-        Destroy(gameObject);
-
+        else
+        {
+            Debug.LogWarning("Checkpoint position not found!");
+        }
     }
     
     

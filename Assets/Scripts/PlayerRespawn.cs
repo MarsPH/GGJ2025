@@ -6,51 +6,48 @@ public class PlayerRespawn : MonoBehaviour
 {
     public float respawnDelay = 1f; // Delay before respawning
     public GameObject bubblePrefab; // Reference to the bubble prefab
-    private GameObject currentBlob;
     private Blob blob;
 
     private void Start()
     {
-        currentBlob = Resources.Load<GameObject>("BubblePrefab");
-        blob = currentBlob.GetComponent<Blob>();
+        if (bubblePrefab != null)
+        {
+            blob = bubblePrefab.GetComponent<Blob>();
+        }
+        else
+        {
+            Debug.LogError("BubblePrefab is not assigned in PlayerRespawn!");
+        }
     }
 
-    // ReSharper disable Unity.PerformanceAnalysis
     public void Respawn()
     {
         Debug.Log("Respawn");
-        // Get the checkpoint position
-        Vector3 respawnPosition = CheckpointManager.Instance.GetCheckpointPosition();
-        Debug.Log($"Respawning at {respawnPosition}");
-        if (respawnPosition != Vector3.zero && currentBlob != null)
-        {
-            // Use the SpawnNewBubble method from Blob
-            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize());
-            Debug.Log("Respawned bubble at checkpoint!");
-        }
-        else
-        {
-            Debug.LogWarning("No checkpoint found or Blob script is missing!");
-        }
-    }
-
-    public IEnumerator RespawnCoroutine()
-    {
-        yield return new WaitForSeconds(respawnDelay);
 
         // Get the checkpoint position
         Vector3 respawnPosition = CheckpointManager.Instance.GetCheckpointPosition();
         Debug.Log($"Respawning at {respawnPosition}");
-        if (respawnPosition != Vector3.zero && currentBlob != null)
+
+        if (respawnPosition != Vector3.zero && bubblePrefab != null)
         {
-            // Use the SpawnNewBubble method from Blob
-            blob.SpawnNewBubble(respawnPosition, blob.GetBubbleSize(), true);
+            // Spawn the new bubble at the checkpoint position
+            GameObject newBubble = Instantiate(bubblePrefab, respawnPosition, Quaternion.identity);
+
+            // Ensure the new bubble is tagged as "PlayerMain"
+            newBubble.tag = "PlayerMain";
+
+            // Update the camera to follow the new bubble
+            SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+            if (cameraFollow != null)
+            {
+                cameraFollow.UpdateTarget(newBubble.transform);
+            }
+
             Debug.Log("Respawned bubble at checkpoint!");
         }
         else
         {
-            Debug.LogWarning("No checkpoint found or Blob script is missing!");
+            Debug.LogWarning("No checkpoint found or BubblePrefab is missing!");
         }
     }
-    
 }
