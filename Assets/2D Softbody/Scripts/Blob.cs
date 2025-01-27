@@ -144,28 +144,28 @@ public class Blob : MonoBehaviour
     public void CollectItem(GameObject collectible)
     {
         // Ensure the collectible isn't collected more than once
-        Collider2D collectibleCollider = collectible.GetComponent<Collider2D>();
+    Collider2D collectibleCollider = collectible.GetComponent<Collider2D>();
 
-        if (collectibleCollider == null || !collectibleCollider.enabled)
-        {
-            return; // Skip if already collected
-        }
+    if (collectibleCollider == null || !collectibleCollider.enabled)
+    {
+        return; // Skip if already collected
+    }
 
-        // Disable the collider to prevent further triggers
-        collectibleCollider.enabled = false;
+    // Disable the collider to prevent further triggers
+    collectibleCollider.enabled = false;
 
-        // Notify the GameManager about the collected item
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.CollectItem();
-        }
-        else
-        {
-            Debug.LogWarning("GameManager instance is null!");
-        }
+    // Notify the GameManager about the collected item
+    if (GameManager.Instance != null)
+    {
+        GameManager.Instance.CollectItem();
+    }
+    else
+    {
+        Debug.LogWarning("GameManager instance is null!");
+    }
 
-        // Destroy the collectible
-        Destroy(collectible);
+    // Destroy the collectible
+    Destroy(collectible);
     }
     
     public int maxHearts = 3; // Maximum number of hearts
@@ -448,8 +448,15 @@ public class Blob : MonoBehaviour
     {
         Debug.Log($"{gameObject.name} has popped!");
 
-        // Reduce hearts
-        GameManager.Instance.CurrentHearts--;
+        // Use HealthManager or GameManager to handle health reduction and UI updates
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.DecreaseHeart(); // Handles hearts and UI updates
+        }
+        else
+        {
+            Debug.LogWarning("GameManager instance is null!");
+        }
 
         // Check for Game Over
         if (GameManager.Instance.CurrentHearts <= 0)

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-   public static GameManager Instance;
+    public static GameManager Instance;
 
     [Header("Game Settings")]
     public int TotalCollectibles = 5;
@@ -18,6 +18,9 @@ public class GameManager : MonoBehaviour
     [Header("UI References")]
     public Slider collectiblesSlider; // Reference to a Slider for collectibles
     public TextMeshProUGUI collectiblesText; // Reference to TextMeshPro for the score display
+    public Image[] heartImages; // Array for heart UI images
+    public Sprite fullHeartSprite; // Sprite for a full heart
+    public Sprite emptyHeartSprite; // Sprite for an empty heart
 
     private bool gameIsOver = false;
 
@@ -26,7 +29,7 @@ public class GameManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // Persist between scenes
+            //DontDestroyOnLoad(gameObject); // Persist between scenes
         }
         else
         {
@@ -65,6 +68,7 @@ public class GameManager : MonoBehaviour
         CollectedCount = 0;
         gameIsOver = false;
 
+        UpdateHeartsUI();
         UpdateCollectiblesUI();
         Debug.Log("Game state reset.");
     }
@@ -93,17 +97,23 @@ public class GameManager : MonoBehaviour
     public void RetryGame()
     {
         Debug.Log("Retrying Game...");
+        ResetGameState();
         SceneManager.LoadScene("GameScene");
     }
 
     public void DecreaseHeart()
     {
-        CurrentHearts--;
-        Debug.Log($"Hearts Left: {CurrentHearts}");
-
-        if (CurrentHearts <= 0)
+        if (CurrentHearts > 0)
         {
-            GameOver();
+            CurrentHearts--;
+            Debug.Log($"Hearts Left: {CurrentHearts}");
+
+            UpdateHeartsUI();
+
+            if (CurrentHearts <= 0)
+            {
+                GameOver();
+            }
         }
     }
 
@@ -129,6 +139,7 @@ public class GameManager : MonoBehaviour
             collectiblesSlider.value = CollectedCount; // Start the slider at the current count
         }
 
+        UpdateHeartsUI(); // Initialize heart display
         UpdateCollectiblesUI(); // Update text and slider
     }
 
@@ -144,6 +155,26 @@ public class GameManager : MonoBehaviour
         if (collectiblesText != null)
         {
             collectiblesText.text = $"Score: {CollectedCount}/{TotalCollectibles}";
+        }
+    }
+
+    private void UpdateHeartsUI()
+    {
+        // Update each heart image based on current health
+        for (int i = 0; i < heartImages.Length; i++)
+        {
+            if (i < CurrentHearts)
+            {
+                // Set to full heart sprite
+                heartImages[i].sprite = fullHeartSprite;
+                heartImages[i].color = Color.white; // Ensure it's visible
+            }
+            else
+            {
+                // Set to empty heart sprite
+                heartImages[i].sprite = emptyHeartSprite;
+                heartImages[i].color = new Color(55f / 255f, 87f / 255f, 83f / 255f, 0.5f); // Semi-transparent
+            }
         }
     }
 }
