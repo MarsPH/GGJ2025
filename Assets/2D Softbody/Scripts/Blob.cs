@@ -176,8 +176,18 @@ public class Blob : MonoBehaviour
         // Add code to transition to a win scene or display win UI
         UnityEngine.SceneManagement.SceneManager.LoadScene("WinScene");
     }
+    
+    public AudioClip deathSound; // Assign the death sound clip in the Inspector
+    private AudioSource audioSource;
+    
     void Start()
     {
+        // Ensure an AudioSource is available on the bubble
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
         currentHearts = maxHearts; // Initialize hearts
         if (splitIndicator == null)
         {
@@ -471,50 +481,63 @@ public class Blob : MonoBehaviour
 
     public void DestroyBubble()
     {
-        Debug.Log($"{gameObject.name} has popped!");
+      Debug.Log($"{gameObject.name} has popped!");
 
-        // Use HealthManager or GameManager to handle health reduction and UI updates
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.DecreaseHeart(); // Handles hearts and UI updates
-        }
-        else
-        {
-            Debug.LogWarning("GameManager instance is null!");
-        }
+    // Play the death sound if available
+    if (deathSound != null)
+    {
+        // Create a temporary GameObject for playing the sound
+        GameObject tempSoundObject = new GameObject("TempDeathSound");
+        AudioSource tempAudioSource = tempSoundObject.AddComponent<AudioSource>();
+        tempAudioSource.clip = deathSound;
+        tempAudioSource.spatialBlend = 0f; // Ensure the sound is 2D (optional, based on your setup)
+        tempAudioSource.Play();
 
-        // Check for Game Over
+        // Destroy the temporary object after the sound finishes playing
+        Destroy(tempSoundObject, deathSound.length);
+    }
+
+    // Immediately destroy the bubble object
+    Destroy(gameObject);
+
+    // Handle game over or respawn logic
+    if (GameManager.Instance != null)
+    {
+        GameManager.Instance.DecreaseHeart(); // Handles hearts and UI updates
+
         if (GameManager.Instance.CurrentHearts <= 0)
         {
             Debug.Log("No hearts left. Game Over!");
             GameManager.Instance.GameOver();
-            Destroy(gameObject);
-            return;
-        }
-
-        // Get the checkpoint position
-        Vector3 respawnPosition = CheckpointManager.Instance.GetCheckpointPosition();
-        Debug.Log($"Respawning at checkpoint: {respawnPosition}");
-
-        if (respawnPosition != Vector3.zero)
-        {
-            // Respawn the player at the checkpoint
-            GameObject newBubble = SpawnNewBubble(respawnPosition, transform.localScale.x, true);
-
-            // Update the camera to follow the new bubble
-            SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
-            if (cameraFollow != null)
-            {
-                cameraFollow.UpdateTarget(newBubble.transform);
-            }
-
-            // Destroy the current bubble
-            Destroy(gameObject);
         }
         else
         {
-            Debug.LogWarning("Checkpoint position not found!");
+            // Get the checkpoint position
+            Vector3 respawnPosition = CheckpointManager.Instance.GetCheckpointPosition();
+            Debug.Log($"Respawning at checkpoint: {respawnPosition}");
+
+            if (respawnPosition != Vector3.zero)
+            {
+                // Respawn the player at the checkpoint
+                GameObject newBubble = SpawnNewBubble(respawnPosition, transform.localScale.x, true);
+
+                // Update the camera to follow the new bubble
+                SmoothCameraFollow cameraFollow = Camera.main.GetComponent<SmoothCameraFollow>();
+                if (cameraFollow != null)
+                {
+                    cameraFollow.UpdateTarget(newBubble.transform);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Checkpoint position not found!");
+            }
         }
+    }
+    else
+    {
+        Debug.LogWarning("GameManager instance is null!");
+    }
     }
     
     
