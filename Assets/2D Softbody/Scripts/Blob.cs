@@ -31,7 +31,7 @@ public class Blob : MonoBehaviour
                     float otherSize = otherBlob.GetBubbleSize();
 
                     // Ensure only one bubble handles the absorption
-                    if (thisSize > otherSize && !thisBlob.hasAbsorbed)
+                    if (thisSize > otherSize && !thisBlob.hasAbsorbed )
                     {
                         thisBlob.hasAbsorbed = true;
                         thisBlob.AbsorbBubble(otherBlob, thisSize, otherSize);
@@ -181,7 +181,7 @@ public class Blob : MonoBehaviour
         currentHearts = maxHearts; // Initialize hearts
         if (splitIndicator == null)
         {
-            Debug.LogError("SplitIndicator UI is not assigned in the Blob script.");
+            //Debug.LogError("SplitIndicator UI is not assigned in the Blob script.");
         }
         previousScale = transform.localScale;
 
@@ -214,6 +214,10 @@ public class Blob : MonoBehaviour
 
     public void AbsorbBubble(Blob otherBlob, float absorberSize, float absorbedSize)
     {
+        if (!isPlayer)
+        {
+            return;
+        }
         Debug.Log($"{name} is absorbing {otherBlob.name}");
 
         // Calculate the size of the new bubble
