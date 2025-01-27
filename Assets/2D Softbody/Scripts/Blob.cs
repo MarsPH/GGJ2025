@@ -421,28 +421,49 @@ public class Blob : MonoBehaviour
         }
         return newBubble;
     }
+    
+    private float stressLevel = 0f; // Current stress level (0 to 1)
+    private float stressDecayRate = 0.2f; // How quickly stress decreases over time
+    private float stressIncreaseRate = 0.1f; // How much stress increases for deformation
+    private float stressThreshold = 0.3f; // Stress level at which the bubble pops
 
     
     void CheckForDeformation()
     {
-        // Scale the max threshold proportionally to the bubble size
-        float maxThreshold = maxDeformationThreshold * (transform.localScale.x); 
-
-        // Scale the min threshold, but make smaller bubbles more forgiving
-        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.0000000001f) * 0 ; 
+        // Calculate the dynamic thresholds based on the bubble's size
+        float maxThreshold = maxDeformationThreshold * transform.localScale.x * 1.5f; // Increase max threshold
+        float minThreshold = minDeformationThreshold * Mathf.Pow(transform.localScale.x / 8f, 0.25f); // Smaller bubbles are more forgiving
 
         float maxDistance = 0f;
         float minDistance = float.MaxValue;
 
+        // Iterate through reference points to calculate distances
         foreach (GameObject referencePoint in referencePoints)
         {
             float distance = Vector2.Distance(referencePoint.transform.position, transform.position);
             maxDistance = Mathf.Max(maxDistance, distance);
             minDistance = Mathf.Min(minDistance, distance);
+
+            // Check if the distance exceeds the thresholds
+            if (distance > maxThreshold || distance < minThreshold)
+            {
+                // Accumulate stress based on how far out of bounds the distance is
+                float deformation = Mathf.Max(Mathf.Abs(distance - maxThreshold), Mathf.Abs(minThreshold - distance));
+                stressLevel += deformation * stressIncreaseRate * Time.deltaTime;
+            }
         }
 
-        // Trigger death if deformation exceeds thresholds
-        if (maxDistance > maxThreshold || minDistance < minThreshold)
+        // Decay stress over time (makes the mechanic forgiving)
+        stressLevel = Mathf.Max(0f, stressLevel - stressDecayRate * Time.deltaTime);
+
+        // Visual or audio warning when stress level is high
+        if (stressLevel > 0.7f * stressThreshold)
+        {
+            Debug.Log("Bubble is under stress! Be careful.");
+        }
+
+        // Pop the bubble if the stress threshold is exceeded
+        if (stressLevel >= stressThreshold)
         {
             DestroyBubble();
         }
