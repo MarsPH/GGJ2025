@@ -143,8 +143,16 @@ public class Blob : MonoBehaviour
 
     public void CollectItem(GameObject collectible)
     {
-        // Destroy the collectible object
-        Destroy(collectible);
+        // Ensure the collectible isn't collected more than once
+        Collider2D collectibleCollider = collectible.GetComponent<Collider2D>();
+
+        if (collectibleCollider == null || !collectibleCollider.enabled)
+        {
+            return; // Skip if already collected
+        }
+
+        // Disable the collider to prevent further triggers
+        collectibleCollider.enabled = false;
 
         // Notify the GameManager about the collected item
         if (GameManager.Instance != null)
@@ -156,7 +164,8 @@ public class Blob : MonoBehaviour
             Debug.LogWarning("GameManager instance is null!");
         }
 
-        Debug.Log($"Collected {GameManager.Instance.CollectedCount}/{GameManager.Instance.TotalCollectibles} items.");
+        // Destroy the collectible
+        Destroy(collectible);
     }
     
     public int maxHearts = 3; // Maximum number of hearts
