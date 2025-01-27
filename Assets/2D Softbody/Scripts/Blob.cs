@@ -143,15 +143,20 @@ public class Blob : MonoBehaviour
 
     public void CollectItem(GameObject collectible)
     {
-        GameManager.Instance.CollectedCount++;
+        // Destroy the collectible object
         Destroy(collectible);
 
-        Debug.Log($"Collected {GameManager.Instance.CollectedCount}/{GameManager.Instance.TotalCollectibles} items.");
-
-        if (GameManager.Instance.CollectedCount >= GameManager.Instance.TotalCollectibles)
+        // Notify the GameManager about the collected item
+        if (GameManager.Instance != null)
         {
-            GameManager.Instance.WinGame(); // Trigger win condition when all collectibles are gathered
+            GameManager.Instance.CollectItem();
         }
+        else
+        {
+            Debug.LogWarning("GameManager instance is null!");
+        }
+
+        Debug.Log($"Collected {GameManager.Instance.CollectedCount}/{GameManager.Instance.TotalCollectibles} items.");
     }
     
     public int maxHearts = 3; // Maximum number of hearts

@@ -1,9 +1,11 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance;
+   public static GameManager Instance;
 
     [Header("Game Settings")]
     public int TotalCollectibles = 5;
@@ -12,6 +14,10 @@ public class GameManager : MonoBehaviour
     [Header("Game State")]
     public int CollectedCount = 0;
     public int CurrentHearts;
+
+    [Header("UI References")]
+    public Slider collectiblesSlider; // Reference to a Slider for collectibles
+    public TextMeshProUGUI collectiblesText; // Reference to TextMeshPro for the score display
 
     private bool gameIsOver = false;
 
@@ -31,6 +37,7 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         ResetGameState(); // Initialize game state when the game starts
+        SetupUI(); // Initialize UI components
     }
 
     private void OnEnable()
@@ -48,6 +55,7 @@ public class GameManager : MonoBehaviour
         if (scene.name == "GameScene")
         {
             ResetGameState();
+            SetupUI();
         }
     }
 
@@ -56,6 +64,8 @@ public class GameManager : MonoBehaviour
         CurrentHearts = MaxHearts;
         CollectedCount = 0;
         gameIsOver = false;
+
+        UpdateCollectiblesUI();
         Debug.Log("Game state reset.");
     }
 
@@ -102,9 +112,38 @@ public class GameManager : MonoBehaviour
         CollectedCount++;
         Debug.Log($"Collected {CollectedCount}/{TotalCollectibles} items.");
 
+        UpdateCollectiblesUI();
+
         if (CollectedCount >= TotalCollectibles)
         {
             WinGame();
+        }
+    }
+
+    private void SetupUI()
+    {
+        // Ensure the slider and text are set up properly
+        if (collectiblesSlider != null)
+        {
+            collectiblesSlider.maxValue = TotalCollectibles; // Set slider max value to the total collectibles
+            collectiblesSlider.value = CollectedCount; // Start the slider at the current count
+        }
+
+        UpdateCollectiblesUI(); // Update text and slider
+    }
+
+    private void UpdateCollectiblesUI()
+    {
+        // Update Slider
+        if (collectiblesSlider != null)
+        {
+            collectiblesSlider.value = CollectedCount;
+        }
+
+        // Update Text
+        if (collectiblesText != null)
+        {
+            collectiblesText.text = $"Score: {CollectedCount}/{TotalCollectibles}";
         }
     }
 }
