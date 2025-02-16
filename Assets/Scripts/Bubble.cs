@@ -313,24 +313,30 @@ public class Blob : MonoBehaviour
         // Calculate the size increment based on the food object's scale
         float foodSize = foodObject.transform.localScale.x;
         float currentSize = transform.localScale.x;
-        float newSize = Mathf.Sqrt((currentSize * currentSize) + (foodSize * foodSize));
+        float newSize = 2 * Mathf.Sqrt((currentSize * currentSize) + (foodSize * foodSize));
 
         // Save the bubble's velocity
         Vector2 currentVelocity = GetComponent<Rigidbody2D>().velocity;
 
         // Destroy the current bubble and the food object
-        Destroy(gameObject);
+        //Destroy(gameObject);
+        
+        float sizeFactor = newSize / foodSize;
+        
+        transform.localScale = new Vector3(newSize, newSize, 1);
+        foreach (GameObject referencePoint in referencePoints)
+        {
+            referencePoint.transform.localPosition *= sizeFactor; 
+        }
+        
         Destroy(foodObject);
 
         // Spawn a new larger bubble
         GameObject newBubble = SpawnNewBubble(transform.position, newSize, true);
 
         // Transfer the velocity to the new bubble
-        Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
-        if (newRb != null)
-        {
-            //newRb.velocity = currentVelocity;
-        }
+        //Rigidbody2D newRb = newBubble.GetComponent<Rigidbody2D>();
+  
     }
     
     public void SplitBubbleUsingSplitter(Vector3 splitterPosition)
